@@ -6,52 +6,30 @@ var User = models.User;
 var Sequelize = require('sequelize');
 
 router.get('/',function (req, res, next) {
-  // res.send('got to GET /wiki/');
 
-  Page.findAll().then(function(result){
-    // console.log("Result:", result);
-    // res.json(result);
-    var pages = result.map(function(elem){
-      return elem.dataValues;
-    });
-    console.log("Pages:", pages);
-      res.render('index', {pages: pages});
-  }).catch(function (err) {
-    res.send(err);
-  });
+  Page.findAll().then(function(pages){
+      res.render('index', {pages:pages});
+  }).catch(next);
 
 });
 
 router.get('/add', function (req, res, next) {
-  // res.send('got to GET/wiki/add');
   res.render('addpage');
 });
 
 router.get('/users', function(req, res, next) {
-  console.log("Gettings users!");
   User.findAll().then(function(users) {
-    console.log("Getting users:",users);
-    // res.json(users);
-    users = users.map(function(elem) {
-      return elem.dataValues;
-    });
     res.render('users', {users: users});
   });
 });
 
 router.get('/users/:id', function(req, res, next) {
-  console.log("Gettings user!", req.params.id);
+  // console.log("Gettings user!", req.params.id);
   Page.findAll({
     where:{
       authorId: req.params.id
     }
   }).then(function(articles) {
-    console.log(articles);
-
-    // res.json(articles);
-    articles = articles.map(function(elem) {
-      return elem.dataValues;
-    });
     res.render('users', {pages: articles});
   }).catch(next);
 });
@@ -64,67 +42,51 @@ router.post('/', function (req, res, next) {
   var status = req.body.status;
   var name = req.body.name;
   var email = req.body.email;
+  var tags = req.body.tags
 
-  User.findOrCreate({
+  var findingOrCreating = User.findOrCreate({
     where: {
       name: name,
       email: email
     }
   })
-  .then(function (result) {
-    var user = result[0];
-    // console.log("User result after save:", result[0]);
-    var page = Page.build({
+  .then(function (values) {
+    return values[0];
+
+  });
+    var creatingPage = Page.create({
       title: title,
       content: content,
       status: status,
+      tags: tags
       // UserId: result[0].id //becomes setAuthor
     });
-      return page.save().then(function(page){
+
+    Promise.all([findingOrCreating, creatingPage ])
+      .then(function(values){
+        user=values[0];
+        page = values[1];
         return page.setAuthor(user);
-      });
+
   })
-  .then(function(result) {
-      // console.log("Page result after save:", result);
-    // res.json(result);
-    console.log("Post result route:", result.route);
-    res.redirect(result.route);
-  }).catch(function(err) {
-    res.send(err);
-    console.error(err);
-  });
+  .then(function(page) {
+    res.redirect(page.route);
+  }).catch(next);
 });
 
-router.get('/:title',function (req, res, next) {
-  Page.find({
+router.get('/:urlTitle',function (req, res, next) {
+  var pagePromise = Page.find({
     where:{
-      urlTitle:req.params.title
+      urlTitle:req.params.urlTitle
     }
   })
-
-// .then(function (page) {
-//   User.find({
-//     where:{
-//       id: page.UserId
-//     }
-//   }).then(function (user){
-//     return{
-//       userId: user.id;
-//       email: user.email,
-//       title: page.title,
-//       content: page.content
-//     }
-//   })
-//
-// })
-.then(function (result) {
-    // console.log("Params title", req.params.title);
-    // console.log("Result:",result.dataValues);
-    res.render('wikipage', result.dataValues);
-  }).catch(function (err) {
-    res.send(err);
+.then(function (pageFromDB) {
+  page = pageFromDB;
+  author = page.getAuthor().then(function (author) {
+      res.render('wikipage', {page: page, author: author});
   });
-  // res.render('wikipage');
+
+  }).catch(next);
 });
 
 

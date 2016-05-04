@@ -38,7 +38,7 @@ app.get('/', function (req, res, next) {
   res.render('index');
 });
 
-//create tables from schema (async)->Promise
+// create tables from schema (async)->Promise
 // models.User.sync({force:true})
 models.User.sync()
 .then(function () {
@@ -53,8 +53,8 @@ models.User.sync()
 })
 .catch(console.error);
 
-app.use('/:page',function (req, res, next) {
-  res.redirect('/wiki/'+req.params.page);
+app.use('/users',function (req, res, next) {
+  res.redirect('/wiki'+req.originalUrl);
 });
 app.use(function (req, res, next) {
   var err = new Error('not found');
@@ -63,5 +63,6 @@ app.use(function (req, res, next) {
 });
 
 app.use(function (err, req, res, next) {
+  console.error("Error:", err);
   res.status(err.status|| 500).send(err);
 });

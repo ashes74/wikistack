@@ -23,12 +23,63 @@ var Page = db.define ('Page', {
         defaultValue: Sequelize.NOW
     },
     status: Sequelize.ENUM('open', 'closed'),
+    tags:{
+      type: Sequelize.ARRAY(Sequelize.STRING),
+      defaultValue: [],
+      set: function (value) {
+        var tagsAsAnArray = value.split(',');
+        this.setDataValue('tags', tagsAsAnArray);
+      }
+    }
 
 },  {
     getterMethods:{
-    route: function () {return '/wiki/'+ this.urlTitle;}
+    route: function () {
+      // console.log("in hook", this);
+      return '/wiki/'+ this.urlTitle;}
+
   }
-});
+  // classMethods {
+  //   findByTag: function (tag) {
+  //     return this.findAll({
+  //       where:{
+  //         tag:{
+  //           $contains: [tag]
+  //         }
+  //       }
+  //     })
+  //   }
+  // }
+  // instanceMethods:{
+  //   findSimilar: function () {
+  //     return this.constructor.findAll({
+  //       where:{
+  //         tag: {
+  //             $overlap: this.tags
+  //         },
+  //         id:{
+  //           $ne: this.id
+  //         }
+  //       }
+  //     })
+  //   }
+  // }
+
+}
+//not currently working
+// ,{
+//   hooks:{
+//     beforeValidate: function(page) {
+//       console.log("this is happening");
+//       if (page.title) {
+//         page.urlTitle = page.title.replace(/\s+/g, '_').replace(/\W/g, '');
+//       } else {
+//         page.urlTitle = page.title=  Math.random().toString(36).substring(2, 7);
+//       }
+//     }
+//   }
+// }
+);
 
 Page.hook('beforeValidate',function(page) {
   if (page.title) {
@@ -36,11 +87,10 @@ Page.hook('beforeValidate',function(page) {
     page.urlTitle = withUnder.replace(/[^0-9a-z_]/ig, '');
     // return title.replace(/\s+/g, '_').replace(/\W/g, '');
   } else {
+    console.log("creating random title");
     page.urlTitle = Math.random().toString(36).substring(2, 7);
   }
 });
-
-
 
 var User = db.define ('User', {
   name: {type: Sequelize.STRING, allowNull: false},
@@ -49,7 +99,12 @@ var User = db.define ('User', {
      isEmail:true,
     allowNull: false
   }
-
+},
+{
+    getterMethods:{
+    route: function () {
+      return '/wiki/users/'+ this.id;}
+  }
 });
 
 Page.belongsTo(User, {as: 'author'});
